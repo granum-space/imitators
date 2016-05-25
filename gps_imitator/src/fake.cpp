@@ -13,7 +13,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <random>
+#include <stdlib.h>
 
 #include "spi.h"
 
@@ -37,7 +37,7 @@ FakeGpsState state;
 
 static size_t get_pause()
 {
-	const int max_pause = 10;
+	const int max_pause = 50;
 	const int min_pause = 1;
 	return min_pause + (rand() % (int)(max_pause - min_pause + 1));
 }

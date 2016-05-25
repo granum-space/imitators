@@ -1,19 +1,14 @@
 
 #include "spi.h"
+#include "gps.h"
 #include <stdio.h>
 
 int main()
 {
 	spi_init();
+	GPS_Init();
 
-	while(1)
-	{
-		uint8_t symbol = spi_sendbyte(0xFF);
-		if (symbol != 0xFF)
-		{
-			printf("%c", *((char*)&symbol));
-			fflush(stdout);
-		}
-	}
+	float * a, *b, *c;
+	GPS_Read_Data(a, b, c);
 	return 0;
 }
