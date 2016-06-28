@@ -7,6 +7,7 @@
 
 #include "spi.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 enum {
 	SEARCHING,
@@ -48,6 +49,7 @@ uint8_t GPS_update(int cycles)
 	for(i = 0;i<cycles;i++)
 	{
 		symbol = (char)spi_sendbyte(0xFF);
+		//printf("%c\n", symbol);
 		//printf("symbol=%c (%x)\n", symbol, (unsigned char)symbol);
 		switch(gps_status){
 		case SEARCHING:
@@ -133,25 +135,33 @@ uint8_t GPS_update(int cycles)
 			}
 			break;
 		case COLLECTING_GGA:
+			gps_buffer[gps_index] = symbol;
+			gps_index++;
 			if(symbol == '\n') {
+				gps_index--;
 				printf("End of GGA packet.\n");
-				void parse_GGA();
+				parse_GGA();
 				gps_index = 0;
 				gps_status = SEARCHING;
 			}
 			break;
 		case COLLECTING_GLL:
+			gps_buffer[gps_index] = symbol;
+			gps_index++;
 			if(symbol == '\n') {
+				gps_index--;
 				printf("End of GLL packet.\n");
-				void parse_Gll();
+				parse_GLL();
 				gps_index = 0;
 				gps_status = SEARCHING;
 			}
 			break;
 		case COLLECTING_RMC:
+			gps_buffer[gps_index] = symbol;
+			gps_index++;
 			if(symbol == '\n') {
 				printf("End of RMC packet.\n");
-				void parse_RMC();
+				parse_RMC();
 				gps_index = 0;
 				gps_status = SEARCHING;
 			}
@@ -162,13 +172,54 @@ uint8_t GPS_update(int cycles)
 }
 
 void parse_GGA() {
-
+	uint8_t block[15];
+	uint8_t block_index = 1;
+	for(int i = 0;i<gps_index;i++) {
+		if(gps_buffer[i] == ',') {
+			block[block_index] = (i+1);
+			block_index++;
+		}
+	}
+	latitude = atof(&gps_buffer[block[2]]);
+	lat_side = gps_buffer[block[3]];
+	longtitude = atof(&gps_buffer[block[4]]);
+	long_side = gps_buffer[block[5]];
+	height = atof(&gps_buffer[block[9]]);
+	printf("%c%f %c%f %f meters\n",lat_side, latitude,long_side, longtitude, height);
 }
 
 void parse_GLL() {
-
+	uint8_t block[8];
+	uint8_t block_index = 1;
+	for(int i = 0;i<gps_index;i++) {
+		if(gps_buffer[i] == ',') {
+			block[block_index] = (i+1);
+			block_index++;
+		}
+	}
+	if(gps_buffer[block[6]]=='A'){
+		latitude = atof(&gps_buffer[block[1]]);
+		lat_side = gps_buffer[block[2]];
+		longtitude = atof(&gps_buffer[block[3]]);
+		long_side = gps_buffer[block[4]];
+		printf("%c%f %c%f %f meters\n",lat_side, latitude,long_side, longtitude, height);
+	}
 }
 
 void parse_RMC() {
-
+	uint8_t block[12];
+	uint8_t block_index = 1;
+	for(int i = 0;i<gps_index;i++) {
+		if(gps_buffer[i] == ',') {
+			block[block_index] = (i+1);
+			block_index++;
+		}
+	}
+	if(gps_buffer[block[2]]=='A'){
+		latitude = atof(&gps_buffer[block[3]]);
+		lat_side = gps_buffer[block[4]];
+		longtitude = atof(&gps_buffer[block[5]]);
+		long_side = gps_buffer[block[6]];
+		printf("%c%f %c%f %f meters\n",lat_side, latitude,long_side, longtitude, height);
+	}
 }
