@@ -4,10 +4,11 @@
  *  Created on: 23 мая 2016 г.
  *      Author: developer
  */
-
-#include "spi.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+
+#include "spi.h"
 
 enum {
 	SEARCHING,
@@ -23,14 +24,7 @@ char gps_buffer[100];
 uint8_t gps_index = 0;
 
 float latitude = 0.0f, longtitude = 0.0f, height = 0.0f;
-enum {
-	N = 0,
-	S = 1
-}lat_side;
-enum {
-	E = 0,
-	W = 1
-}long_side;
+char lat_side,long_side;
 
 void GPS_Init()
 {
@@ -42,8 +36,9 @@ void parse_GGA();
 void parse_GLL();
 void parse_RMC();
 
-uint8_t GPS_update(int cycles)
+bool GPS_update(int cycles)
 {
+	bool updated;
 	char symbol;
 	int i=0;
 	for(i = 0;i<cycles;i++)
@@ -63,14 +58,8 @@ uint8_t GPS_update(int cycles)
 			gps_buffer[gps_index] = symbol;
 			gps_index++;
 			if(gps_index==3) {
-				if(gps_buffer[1] == 'G') {
-					if(gps_buffer[2] == 'P') {
-						gps_status = WAITING_MES_T;
-					}
-					else {
-						gps_status = SEARCHING;
-						gps_index = 0;
-					}
+				if(gps_buffer[1] == 'G' && gps_buffer[2] == 'P') {
+					gps_status = WAITING_MES_T;
 				}
 				else {
 					gps_status = SEARCHING;
@@ -94,15 +83,9 @@ uint8_t GPS_update(int cycles)
 						}
 					}
 					else {
-						if(gps_buffer[4] == 'L') {
-							if(gps_buffer[5] == 'L') {
+						if(gps_buffer[4] == 'L' && gps_buffer[5] == 'L') {
 								printf("GLL found\n");
 								gps_status = COLLECTING_GLL;
-							}
-							else {
-								gps_status = SEARCHING;
-								gps_index = 0;
-							}
 						}
 						else {
 							gps_status = SEARCHING;
@@ -111,21 +94,9 @@ uint8_t GPS_update(int cycles)
 					}
 				}
 				else {
-					if(gps_buffer[3] == 'R') {
-						if(gps_buffer[4] == 'M') {
-							if(gps_buffer[5] == 'C') {
-								printf("RMC found\n");
-								gps_status = COLLECTING_RMC;
-							}
-							else {
-								gps_status = SEARCHING;
-								gps_index = 0;
-							}
-						}
-						else {
-							gps_status = SEARCHING;
-							gps_index = 0;
-						}
+					if(gps_buffer[3] == 'R' && gps_buffer[4] == 'M' && gps_buffer[5] == 'C') {
+						printf("RMC found\n");
+						gps_status = COLLECTING_RMC;
 					}
 					else {
 						gps_status = SEARCHING;
@@ -143,6 +114,7 @@ uint8_t GPS_update(int cycles)
 				parse_GGA();
 				gps_index = 0;
 				gps_status = SEARCHING;
+				updated = true;
 			}
 			break;
 		case COLLECTING_GLL:
@@ -154,6 +126,7 @@ uint8_t GPS_update(int cycles)
 				parse_GLL();
 				gps_index = 0;
 				gps_status = SEARCHING;
+				updated = true;
 			}
 			break;
 		case COLLECTING_RMC:
@@ -164,11 +137,12 @@ uint8_t GPS_update(int cycles)
 				parse_RMC();
 				gps_index = 0;
 				gps_status = SEARCHING;
+				updated = true;
 			}
 			break;
 		}
 	}
-	return 0;
+	return updated;
 }
 
 void parse_GGA() {
